@@ -14,10 +14,10 @@ import (
 	"github.com/cespare/xxhash/v2"
 	rendezvous "github.com/dgryski/go-rendezvous" //nolint
 
-	"github.com/go-redis/redis/v8/internal"
-	"github.com/go-redis/redis/v8/internal/hashtag"
-	"github.com/go-redis/redis/v8/internal/pool"
-	"github.com/go-redis/redis/v8/internal/rand"
+	"github.com/peilei-hub/redis/internal"
+	"github.com/peilei-hub/redis/internal/hashtag"
+	"github.com/peilei-hub/redis/internal/pool"
+	"github.com/peilei-hub/redis/internal/rand"
 )
 
 var errRingShardsDown = errors.New("redis: all ring shards are down")

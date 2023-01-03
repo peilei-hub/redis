@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/go-redis/redis/v8/internal/proto"
+	"github.com/peilei-hub/redis/internal/proto"
 )
 
 type MyType struct{}

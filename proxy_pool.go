@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"errors"
-	"github.com/go-redis/redis/v8/internal/pool"
+	"github.com/peilei-hub/redis/internal/pool"
 	"log"
 	"sync"
 	"sync/atomic"
