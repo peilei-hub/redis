@@ -1,7 +1,7 @@
-module github.com/go-redis/redis/example/hll
+module github.com/peilei-hub/redis/example/hll
 
 go 1.14
 
-replace github.com/go-redis/redis/v8 => ../..
+replace github.com/peilei-hub/redis => ../..
 
-require github.com/go-redis/redis/v8 v8.11.5
+require github.com/peilei-hub/redis v8.11.6-proxy+incompatible
