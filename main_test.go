@@ -112,6 +112,32 @@ var _ = AfterSuite(func() {
 	processes = nil
 })
 
+func Test_main(t *testing.T) {
+	f := func(ctx context.Context) []string {
+		return []string{"127.0.0.1:6379"}
+	}
+	rdb, _ := redis.NewProxyClient(f, &redis.ProxyOption{
+		Options: &redis.Options{Password: "123456"},
+	})
+
+	ctx := context.Background()
+	rdb.SetNX(ctx, "key1", "value1", time.Minute)
+
+	for i := 0; i < 20; i++ {
+		j := i
+		if j == 15 {
+			time.Sleep(2 * time.Second)
+		}
+		go func() {
+			rdb.Set(ctx, "key1", "value1", time.Minute)
+			fmt.Println(j)
+		}()
+	}
+
+	time.Sleep(3 * time.Second)
+	rdb.Set(ctx, "key1", "value1", time.Minute)
+}
+
 func TestGinkgoSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "go-redis")

@@ -126,6 +126,9 @@ type baseClient struct {
 	opt      *Options
 	connPool pool.Pooler
 
+	selfDefineGetConn     func(ctx context.Context) (*pool.Conn, error)
+	selfDefineReleaseConn func(ctx context.Context, cn *pool.Conn, err error)
+
 	onClose func() error // hook called when client is closed
 }
 
@@ -134,6 +137,14 @@ func newBaseClient(opt *Options, connPool pool.Pooler) *baseClient {
 		opt:      opt,
 		connPool: connPool,
 	}
+}
+
+func (c *baseClient) SetSelfDefineGetConn(f func(ctx context.Context) (*pool.Conn, error)) {
+	c.selfDefineGetConn = f
+}
+
+func (c *baseClient) SetSelfDefineReleaseConn(f func(ctx context.Context, cn *pool.Conn, err error)) {
+	c.selfDefineReleaseConn = f
 }
 
 func (c *baseClient) clone() *baseClient {
@@ -191,6 +202,11 @@ func (c *baseClient) getConn(ctx context.Context) (*pool.Conn, error) {
 }
 
 func (c *baseClient) _getConn(ctx context.Context) (*pool.Conn, error) {
+	// use self define method
+	if c.selfDefineGetConn != nil {
+		return c.selfDefineGetConn(ctx)
+	}
+
 	cn, err := c.connPool.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -264,6 +280,12 @@ func (c *baseClient) initConn(ctx context.Context, cn *pool.Conn) error {
 func (c *baseClient) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 	if c.opt.Limiter != nil {
 		c.opt.Limiter.ReportResult(err)
+	}
+
+	// use self define method
+	if c.selfDefineReleaseConn != nil {
+		c.selfDefineReleaseConn(ctx, cn, err)
+		return
 	}
 
 	if isBadConn(err, false, c.opt.Addr) {
