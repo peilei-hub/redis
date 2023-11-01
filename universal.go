@@ -7,12 +7,32 @@ import (
 	"time"
 )
 
+type GetProxies func(ctx context.Context) []string
+
+type DriverType string
+
+const (
+	// redis-server部署模式
+	StandAlone DriverType = "stand_alone" // 单机版
+	Sentinel   DriverType = "sentinel"    // 哨兵
+	Cluster    DriverType = "cluster"     // 集群
+	Proxy      DriverType = "proxy"       // redis代理
+)
+
 // UniversalOptions information is required by UniversalClient to establish
 // connections.
 type UniversalOptions struct {
 	// Either a single address or a seed list of host:port addresses
 	// of cluster/sentinel nodes.
 	Addrs []string
+
+	DriverType DriverType
+
+	// for proxy
+	GetProxies GetProxies
+
+	AutoLoadProxy    bool
+	AutoLoadInterval time.Duration
 
 	// Database to be selected after connecting to the server.
 	// Only single-node and failover clients.
@@ -172,6 +192,18 @@ func (o *UniversalOptions) Simple() *Options {
 
 		TLSConfig: o.TLSConfig,
 	}
+}
+
+func (o *UniversalOptions) Proxy() *ProxyOption {
+	opts := &ProxyOption{
+		Options:          o.Simple(),
+		AutoLoadProxy:    o.AutoLoadProxy,
+		AutoLoadInterval: o.AutoLoadInterval,
+		GetProxies:       o.GetProxies,
+	}
+
+	opts.init()
+	return opts
 }
 
 // --------------------------------------------------------------------

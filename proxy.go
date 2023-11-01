@@ -7,24 +7,14 @@ import (
 	"time"
 )
 
-type GetProxies func(ctx context.Context) []string
-
-func DefaultGetProxies(ctx context.Context) []string {
-	return []string{"localhost:6379"}
-}
-
 type ProxyClient struct {
 	*Client
 	proxyPool *ProxyPool
 }
 
-func NewProxyClient(getProxies GetProxies, opt *ProxyOption) (*ProxyClient, error) {
+func NewProxyClient(opt *ProxyOption) (*ProxyClient, error) {
 	opt.init()
 	ctx := context.Background()
-	if getProxies == nil {
-		getProxies = DefaultGetProxies
-		opt.AutoLoadProxy = false
-	}
 
 	cli := &ProxyClient{
 		Client: NewClient(opt.Options),
@@ -34,7 +24,7 @@ func NewProxyClient(getProxies GetProxies, opt *ProxyOption) (*ProxyClient, erro
 	cli.SetSelfDefineReleaseConn(cli.releaseConn)
 
 	ch := make(chan []string, 1)
-	proxyList := getProxies(ctx)
+	proxyList := opt.GetProxies(ctx)
 
 	proxyPool, err := newProxyPool(opt, proxyList, ch)
 	if err != nil {
@@ -43,7 +33,7 @@ func NewProxyClient(getProxies GetProxies, opt *ProxyOption) (*ProxyClient, erro
 	cli.proxyPool = proxyPool
 
 	if opt.AutoLoadProxy {
-		go autoLoadProxy(ctx, getProxies, ch, opt.AutoLoadInterval)
+		go autoLoadProxy(ctx, opt.GetProxies, ch, opt.AutoLoadInterval)
 	}
 
 	return cli, nil

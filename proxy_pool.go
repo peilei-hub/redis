@@ -44,6 +44,10 @@ func newProxyPool(proxyOptions *ProxyOption, proxyList []string, ch <-chan []str
 		go proxyPool.autoLoadProxy()
 	}
 
+	if proxyOptions.IdleCheckFrequency > 0 && proxyOptions.IdleTimeout > 0 {
+		go proxyPool.reaper(proxyOptions.IdleCheckFrequency)
+	}
+
 	return proxyPool, nil
 }
 
@@ -67,7 +71,7 @@ func (p *ProxyPool) getConnPool() (*pool.ConnPool, bool) {
 func (p *ProxyPool) GetConn(ctx context.Context) (*pool.Conn, error) {
 	connPool, ok := p.getConnPool()
 	if !ok {
-		log.Fatal("get nil connPool")
+		log.Println("get nil connPool")
 	}
 
 	return connPool.Get(ctx)
@@ -79,7 +83,7 @@ func (p *ProxyPool) ReleaseConn(ctx context.Context, cn *pool.Conn, err error) {
 	connPool, ok := p.poolMap[addr]
 	p.RUnlock()
 	if !ok {
-		log.Fatal("error")
+		log.Println("error")
 		return
 	}
 	if isBadConn(err, false, addr) {
@@ -154,11 +158,31 @@ func (p *ProxyPool) proxyChanged(proxies []string) bool {
 	return false
 }
 
+func (p *ProxyPool) reaper(frequency time.Duration) {
+	ticker := time.NewTicker(frequency)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		for serv, pl := range p.poolMap {
+			n, err := pl.ReapStaleConns()
+			if err != nil {
+				log.Printf("ReapStaleConns failed: %s, serv: %s\n", err, serv)
+				continue
+			}
+
+			s := pl.Stats()
+			if n > 0 {
+				log.Printf("%v", s) // todo
+			}
+		}
+	}
+}
+
 func laterClose(addr string, connPool *pool.ConnPool) {
 	time.Sleep(5 * time.Second)
 	err := connPool.Close()
 	if err != nil {
-		log.Fatalf("close conn error, addr: %s, err: %v", addr, err)
+		log.Printf("close conn error, addr: %s, err: %v", addr, err)
 	}
 }
 
